@@ -71,6 +71,7 @@ class ProductionConfig(Config):
 
 class HerokuConfig(ProductionConfig):
     SSL_DISABLE = bool(os.environ.get('SSL_DISABLE'))
+    
     @staticmethod
     def init_app(cls, app):
         ProductionConfig.init_app(app)
@@ -80,7 +81,6 @@ class HerokuConfig(ProductionConfig):
         file_handler.setLevel(logging.WARNNING)
         app.logger.addHandler(file_handler)
 
-        #支持代理服务器
         from werkzeug.contrib.fixers import ProxyFix
         app.wsgi_app = ProxyFix(app.wsgi_app)
 
