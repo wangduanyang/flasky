@@ -41,9 +41,9 @@ class Config:
             mail_handler.setLevel(logging.Error)
             app.logger.addHandler(mail_handler)
 
-        if not app.debug and not app.testing and not app.config['SSL_DISABLE']:
-            from flask.ext.sslify import SSLify
-            sslify = SSLify(app)
+        # if not app.debug and not app.testing and not app.config['SSL_DISABLE']:
+        #     from flask.ext.sslify import SSLify
+        #     sslify = SSLify(app)
 
 
 class DevelopmentConfig(Config):
@@ -81,8 +81,8 @@ class HerokuConfig(ProductionConfig):
         file_handler.setLevel(logging.WARNNING)
         app.logger.addHandler(file_handler)
 
-        from werkzeug.contrib.fixers import ProxyFix
-        app.wsgi_app = ProxyFix(app.wsgi_app)
+        # from werkzeug.contrib.fixers import ProxyFix
+        # app.wsgi_app = ProxyFix(app.wsgi_app)
 
 
 config = {
