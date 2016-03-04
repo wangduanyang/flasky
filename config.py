@@ -12,6 +12,11 @@ class Config:
     FLASKY_MAIL_SUBJECT_PREFIX = '[FLASKY]'
     FLASKY_MAIL_SENDER = '13063624378@163.com'
     FLASKY_ADMIN = '786497042@qq.com'
+    MAIL_SERVER = 'smtp.163.com'
+    MAIL_PORT = 25
+    MAIL_USE_TLS = True
+    SSL_DISABLE = True
+    # FLASK_CONFIG = os.environ.get('FLASK_CONFIG')
 
     @staticmethod
     def init_app(cls, app):
@@ -36,17 +41,52 @@ class Config:
             mail_handler.setLevel(logging.Error)
             app.logger.addHandler(mail_handler)
 
+        if not app.debug and not app.testing and not app.config['SSL_DISABLE']:
+            from flask.ext.sslify import SSLify
+            sslify = SSLify(app)
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
     #email
-    MAIL_SERVER = 'smtp.163.com'
-    MAIL_PORT = 25
-    MAIL_USE_TLS = True
+    # MAIL_SERVER = 'smtp.163.com'
+    # MAIL_PORT = 25
+    # MAIL_USE_TLS = True
     MAIL_USERNAME = '13063624378@163.com'
-    MAIL_PASSWORD = 'ww306418'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 
+
+class ProductionConfig(Config):
+    # DEBUG = True
+    #email
+    # MAIL_SERVER = 'smtp.163.com'
+    # MAIL_PORT = 25
+    # MAIL_USE_TLS = True
+    # MAIL_USERNAME = '13063624378@163.com'
+    # MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+                              'sqlite:///' + os.path.join(basedir, 'data-pro.sqlite')
+
+
+class HerokuConfig(ProductionConfig):
+    SSL_DISABLE = bool(os.environ.get('SSL_DISABLE'))
+    @staticmethod
+    def init_app(cls, app):
+        ProductionConfig.init_app(app)
+        import logging
+        from logging import StreamHandler
+        file_handler = StreamHandler()
+        file_handler.setLevel(logging.WARNNING)
+        app.logger.addHandler(file_handler)
+
+        #支持代理服务器
+        from werkzeug.contrib.fixers import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app)
+
+
 config = {
-    'default': DevelopmentConfig
+    'default': DevelopmentConfig,
+    'production': ProductionConfig,
+    'heroku': HerokuConfig
 }
