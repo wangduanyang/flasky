@@ -813,7 +813,7 @@ def deploy():
     '''Run deploymnet tsks.'''
     from flask.ext.migrate import upgrade, migrate
     from flasky import Role, User
-    migrate()
+    #migrate()
     upgrade()
 
     Role.insert_roles()
