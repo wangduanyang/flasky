@@ -167,7 +167,7 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 
-    avatar_hash = db.Column(db.String(32))#email的md5散列值
+    avatar_hash = db.Column(db.String(32))#email md5
 
     posts = db.relationship('Post', backref='author', lazy='dynamic')
 
@@ -232,12 +232,12 @@ class User(UserMixin, db.Model):
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
 
-    #更新最后访问时间
+    #last time login
     def ping(self):
         self.last_seen = datetime.utcnow()
         db.session.add(self)
 
-    #头像
+    #picture
     def gravatar(self, size=100, default='identicon', rating='g'):
         if request.is_secure:
             url = 'https://secure.gravatar.com/avatar'
@@ -247,7 +247,7 @@ class User(UserMixin, db.Model):
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
             url=url, hash=hash, size=size, default=default, rating=rating)
 
-    #生成虚拟数据
+    #generate fake
     @staticmethod
     def generate_fake(count=100):
         from sqlalchemy.exc import IntegrityError
@@ -284,13 +284,13 @@ class User(UserMixin, db.Model):
     def is_followed_by(self, user):
         return self.follower.filter_by(follower_id=user.id).first() is not None
 
-    #获取所关注用户的文章
+    #get posts following
     @property
     def followed_posts(self):
         return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
             .filter(Follow.follower_id == self.id)
 
-    #把用户设为自己的关注者
+    #follow self
     @staticmethod
     def add_self_follows():
         for user in User.query.all():
@@ -300,7 +300,7 @@ class User(UserMixin, db.Model):
                 db.session.commit()
 
 
-#评论模型
+#comment model
 class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
@@ -322,7 +322,6 @@ class Comment(db.Model):
 db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 
-#匿名用户
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
         return False
@@ -331,10 +330,6 @@ class AnonymousUser(AnonymousUserMixin):
         return False
 
 login_manager.anonymous_user = AnonymousUser
-
-# class NameForm(Form):
-#     name = StringField('What is your name?', validators=[data_required()])
-#     submit = SubmitField('Submit')
 
 
 @app.errorhandler(404)
@@ -349,14 +344,12 @@ def internal_server_error(e):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    #处理博客文章表单
     form = PostForm()
     if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('index'))
     # posts = Post.query.order_by(Post.timestamp.desc()).all()
-    #选择显示所有博客文章或只显示所关注用户文章
     show_followed = False
     if current_user.is_authenticated:
         show_followed = bool(request.cookies.get('show_followed', ''))
@@ -364,7 +357,6 @@ def index():
         query = current_user.followed_posts
     else:
         query = Post.query
-    #首页博客分页
     page = request.args.get('page', 1, type=int)
     pagination = query.order_by(Post.timestamp.desc()).paginate(
         page, per_page=current_app.config['FLASKY_POST_PER_PAGE'],
@@ -375,7 +367,7 @@ def index():
                            show_followed=show_followed, pagination=pagination)
 
 
-#显示所有，设置cookie
+#set cookie
 @app.route('/all')
 @login_required
 def show_all():
@@ -384,7 +376,6 @@ def show_all():
     return resp
 
 
-#显示所关注用户，设置cookie
 @app.route('/followed')
 @login_required
 def show_followed():
@@ -392,7 +383,7 @@ def show_followed():
     resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
     return resp
 
-#添加登陆表单
+
 class LoginForm(Form):
     email = StringField('Email', validators=[data_required(), Length(1, 64), Email()])
     password = PasswordField('Password', validators=[data_required()])
@@ -419,7 +410,6 @@ def logout():
     return redirect(url_for('index'))
 
 
-#用户注册表单
 class RegisterForm(Form):
     email = StringField('Email', validators=[data_required(), Length(1, 64), Email()])
     username = StringField('Username', validators=[data_required(), Length(1, 64),
@@ -470,11 +460,10 @@ def confirm(token):
     return redirect(url_for('index'))
 
 
-# 过滤未确认账户
 @app.before_first_request
 def before_request():
     if current_user.is_authenticated:
-        current_user.ping()#更新最后访问时间
+        current_user.ping() #update time
         # flash('current_user.ping()')
     if current_user.is_authenticated and not current_user.confirmed \
             and request.endpoint != 'static':
@@ -497,7 +486,6 @@ def resend_confirmation():
     return redirect(url_for("index"))
 
 
-#检查用户权限的自定义修饰器
 def permission_required(permission):
     def decorator(f):
         @wraps(f)
@@ -527,13 +515,11 @@ def for_moderators_only():
     return "For comment moderators!"
 
 
-#把Permisson类加入模板上下文
 @app.context_processor
 def inject_permissions():
     return dict(Permission=Permission)
 
 
-#用户资料页面
 @app.route('/user/<username>')
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
@@ -544,14 +530,12 @@ def user(username):
     return render_template('user.html', user=user, posts=posts)
 
 
-#用户级别的资料编辑表单
 class EditProfileForm(Form):
     location = StringField('Location', validators=[Length(0, 64)])
     about_me = TextAreaField('About me')
     submit = SubmitField('Submit')
 
 
-#用户编辑资料路由
 @app.route('/edit-profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
@@ -567,7 +551,6 @@ def edit_profile():
     return render_template('edit_profile.html', form=form)
 
 
-#管理员级别的资料编辑表单
 class EditProfileAdminForm(Form):
     email = StringField('Email', validators=[data_required(), Length(1, 64),
                                              Email()])
@@ -599,7 +582,6 @@ class EditProfileAdminForm(Form):
             raise ValidationError('Username already in use!')
 
 
-#管理员编辑表单路由
 @app.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -625,7 +607,6 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html', form=form, user=user)
 
 
-#文章模型
 class Post(db.Model):
     __tablename__ = 'posts'
     id = db.Column(db.Integer, primary_key=True)
@@ -635,7 +616,6 @@ class Post(db.Model):
     body_html = db.Column(db.Text)
     comments = db.relationship('Comment', backref='post', lazy='dynamic')
 
-    #生成虚拟数据
     def generate_fake(count=100):
         from random import seed, randint
         import forgery_py
@@ -662,13 +642,11 @@ class Post(db.Model):
 db.event.listen(Post.body, 'set', Post.on_changed_body)
 
 
-#博客文章表单
 class PostForm(Form):
     body = PageDownField("What's on your mind?", validators=[data_required()])
     submit = SubmitField('Submit')
 
 
-#文章的固定链接路由
 @app.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     post = Post.query.get_or_404(id)
@@ -691,7 +669,6 @@ def post(id):
                            pagination=pagination)
 
 
-#编辑文章
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit(id):
@@ -708,7 +685,6 @@ def edit(id):
     return render_template('edit_post.html', form=form)
 
 
-#关注
 @app.route('/follow/<username>')
 @login_required
 @permission_required(Permission.FOLLOW)
@@ -725,7 +701,6 @@ def follow(username):
     return redirect(url_for('user', username=username))
 
 
-#取消关注
 @app.route('/unfollow/<username>')
 @login_required
 @permission_required(Permission.FOLLOW)
@@ -742,7 +717,6 @@ def unfollow(username):
     return redirect(url_for('user', username=username))
 
 
-#关注你的
 @app.route('/followers/<username>')
 @login_required
 def followers(username):
@@ -761,7 +735,6 @@ def followers(username):
                            followers=followers)
 
 
-#你关注的
 @app.route('/followings/<username>')
 @login_required
 def followings(username):
@@ -780,13 +753,11 @@ def followings(username):
                            followings=followings)
 
 
-#评论表单
 class CommentForm(Form):
     body = StringField('', validators=[data_required()])
     submit = SubmitField('Submit')
 
 
-#管理评论路由
 @app.route('/moderate')
 @login_required
 @permission_required(Permission.MODERATE_COMMENTS)
@@ -801,7 +772,6 @@ def moderate():
     # return render_template('moderate.html')
 
 
-#评论启用路由
 @app.route('/moderate/enable/<int:id>')
 @login_required
 @permission_required(Permission.MODERATE_COMMENTS)
@@ -812,7 +782,6 @@ def moderate_enable(id):
     return redirect(url_for('moderate', page=request.args.get('page', 1, type=int)))
 
 
-#评论禁用路由
 @app.route('/moderate/disable/<int:id>')
 @login_required
 @permission_required(Permission.MODERATE_COMMENTS)
@@ -837,6 +806,7 @@ def test():
     import unittest
     tests = unittest.TestLoader().discover('tests')
     unittest.TextTestRunner(verbosity=2).run(tests)
+
 
 @manager.command
 def deploy():
