@@ -811,9 +811,9 @@ def test():
 @manager.command
 def deploy():
     '''Run deploymnet tsks.'''
-    from flask.ext.migrate import upgrade
+    from flask.ext.migrate import upgrade, migrate
     from flasky import Role, User
-
+    migrate()
     upgrade()
 
     Role.insert_roles()
