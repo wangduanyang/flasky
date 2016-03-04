@@ -145,8 +145,6 @@ class Role(db.Model):
         db.session.commit()
 
 
-#Role.insert_roles()
-#关注关联表模型
 class Follow(db.Model):
     __tablename__ = 'follows'
     follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
