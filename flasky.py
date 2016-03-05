@@ -45,7 +45,7 @@ from flask.ext.migrate import Migrate, MigrateCommand
 from config import config
 
 app = Flask(__name__)
-app.config.from_object(config['default'])
+app.config.from_object(config[os.environ.get('FLASK_CONFIG')])
 # app.config['SECRET_KEY'] = 'hard to guess string'
 
 #sqlalchemy connect database
@@ -813,7 +813,7 @@ def deploy():
     '''Run deploymnet tsks.'''
     from flask.ext.migrate import upgrade, migrate
     from flasky import Role, User
-    #migrate()
+    migrate()
     upgrade()
 
     Role.insert_roles()
