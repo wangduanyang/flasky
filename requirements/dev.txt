@@ -21,7 +21,7 @@ Flask-WTF==0.12
 ForgeryPy==0.1
 html5lib==0.9999999
 itsdangerous==0.24
-Jinja2==2.8
+Jinja2==2.11.3
 keyring==8.4.1
 lightdm-gtk-greeter-settings==1.2.0
 louis==2.6.5
