@@ -49,7 +49,7 @@ six==1.10.0
 SQLAlchemy==1.0.12
 team==1.0
 udiskie==1.4.8
-urllib3==1.14
+urllib3==1.26.5
 virtualenv==13.1.2
 visitor==0.1.2
 Werkzeug==0.11.4
