@@ -25,7 +25,7 @@ Jinja2==2.8
 keyring==8.4.1
 lightdm-gtk-greeter-settings==1.2.0
 louis==2.6.5
-lxml==3.5.0
+lxml==4.9.1
 Mako==1.0.3
 Markdown==2.6.5
 MarkupSafe==0.23
